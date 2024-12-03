@@ -1,0 +1,29 @@
+#!/bin/bash
+
+echo "Starting Tivit app.."
+
+# Defina o endereço do host e a porta que você deseja testar
+HOST="db"  # ou o IP/hostname apropriado
+PORT=5432
+
+while true; do
+  # Tente conectar ao host e porta especificados
+  nc -z -v -w5 $HOST $PORT
+  RESULT=$?
+
+  # Verifique o resultado e forneça feedback
+  if [ $RESULT -eq 0 ]; then
+    echo "Conexão bem-sucedida na porta $PORT!"
+    break
+  else
+    echo "Falha ao conectar na porta $PORT. Tentando novamente..."
+  fi
+
+  # Aguarde alguns segundos antes de tentar novamente
+  sleep 2
+done
+
+python3 manage.py migrate --noinput
+python3 manage.py collectstatic --noinput
+
+gunicorn --bind 0.0.0.0:7000 -w 4 -k uvicorn.workers.UvicornWorker tivit.asgi:application

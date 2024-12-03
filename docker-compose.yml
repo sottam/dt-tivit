@@ -1,0 +1,79 @@
+name: dt-tivit
+
+services:
+  app:
+    image: dt-tivit
+    restart: always
+    build: .
+    volumes:
+      - .:/app
+      - ./.tivit-data/static:/tivit/static/
+      - ./.tivit-data/.cache/pip:/root/.cache/pip
+    environment:
+      - DEBUG=False
+    command: sh /app/app.run
+    depends_on:
+      - db
+      - rabbitmq
+
+  celery:
+    image: dt-tivit
+    restart: always
+    volumes:
+      - .:/app
+      - ./.tivit-data/.cache/pip:/root/.cache/pip
+    environment:
+      - DEBUG=False
+    command: sh /app/celery.run
+    depends_on:
+      - app
+      - db
+      - rabbitmq
+
+  celery-beat:
+    image: dt-tivit
+    restart: always
+    volumes:
+      - .:/app
+      - ./.tivit-data/.cache/pip:/root/.cache/pip
+    environment:
+      - DEBUG=False
+    command: sh /app/celery_beat.run
+    depends_on:
+      - app
+      - rabbitmq
+      - celery
+      - db
+
+  db:
+    image: postgres:16
+    restart: always
+    environment:
+      - POSTGRES_USER=tivit
+      - POSTGRES_PASSWORD=tivit
+      - POSTGRES_DB=tivit
+      - POSTGRES_PORT=5432
+    volumes:
+      - ./.tivit-data/db:/var/lib/postgresql/data
+
+  rabbitmq:
+    image: rabbitmq:3.13
+    restart: always
+    volumes:
+        - ./.tivit-data/rabbitmq/data/:/var/lib/rabbitmq/
+        - ./.tivit-data/rabbitmq/log/:/var/log/rabbitmq
+
+  nginx:
+    image: nginx:1.15-alpine
+    restart: always
+    volumes:
+      - ./.tivit-data/nginx/log:/var/log/nginx
+      - ./nginx/config:/etc/nginx/conf.d
+      - ./.tivit-data/static:/var/www/app/static
+    ports:
+      - "8080:8080"
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+    depends_on:
+      - app
+      - celery
+      - celery-beat

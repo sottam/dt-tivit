@@ -1,0 +1,15 @@
+gis/node_modules
+*.pyc
+*~
+__pycache__
+/static
+.DS_Store
+.idea
+*.log
+/venv
+.venv
+db.sqlite3
+launch.json
+.tivit-data
+celerybeat-schedule
+.vscode
